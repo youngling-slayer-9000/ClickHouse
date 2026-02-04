@@ -1,0 +1,45 @@
+# 📅 2026-02-04
+
+### What I explored
+- Logged into jetson
+- created folder SharonWorkspace in Jetson. Right now am in /home/quester/SharonWorkspace.
+- cloned my forked Clickhouse in 'SharonWorkspace' using "git clone --recurse-submodules https://  github.com/youngling-slayer-9000/ClickHouse.git"
+- But due to insufficient space in disk the operation failed
+  
+       quester@octavarium:~/SharonWorkspace$ df -h
+        Filesystem       Size  Used Avail Use% Mounted on
+        /dev/mmcblk0p1    57G   48G  6.1G  89% /
+        tmpfs             31G  172K   31G   1% /dev/shm
+        tmpfs             13G  1.2G   12G  10% /run
+        tmpfs            5.0M  4.0K  5.0M   1% /run/lock
+        /dev/mmcblk0p10   63M  110K   63M   1% /boot/efi
+        /dev/nvme0n1p1   1.8T   57G  1.7T   4% /mnt/quest1
+        tmpfs            6.2G  136K  6.2G   1% /run/user/1000
+        /dev/mmcblk1p1   7.4G  4.0K  7.4G   1% /media/quester/857A-3C76
+
+- Moved the worskspace to /mnt/quest1 and cloned once again from there.
+- found main.cpp in Clickhouse/src/programs and walked through the code.
+     there were so many features and techniques which i dont know was used there, like RAll,[[nodiscard]], some advanced macro features ,etc.    
+
+
+### What I learned
+- Familiarised with the file structure of jetson
+- Studied RAll technique, 
+- exposed LLVM IR(how it helps in generating a universal mid-level language which can be subjected to powerful optimizations)
+- made some progress in understanding main.cpp
+
+### Questions / blockers
+-  There are so many dependancies, which made hard to trace the workflow.
+- hundreds of Project Macros and compiler specific macros
+- whats the purpose of so many sanitizers, if they can simply be handled by try/catch 
+
+### Next steps
+ - it seems excpetion handling can affect the performance, so handling the errors with macros,sanitizers during the compile time itself saves trillions of cpu cycles. Therefore I must familiarize with basics of CMake and Clang sanitizers.
+- try to compile the project
+
+
+
+
+
+
+
