@@ -20,6 +20,7 @@ void registerAggregateFunctionGroupArraySorted(AggregateFunctionFactory & factor
 void registerAggregateFunctionGroupUniqArray(AggregateFunctionFactory &);
 void registerAggregateFunctionGroupArrayInsertAt(AggregateFunctionFactory &);
 void registerAggregateFunctionGroupArrayIntersect(AggregateFunctionFactory &);
+void registerAggregateFunctionGroupPolygonUnion(AggregateFunctionFactory &);
 void registerAggregateFunctionGroupConcat(AggregateFunctionFactory &);
 void registerAggregateFunctionsQuantile(AggregateFunctionFactory &);
 void registerAggregateFunctionsQuantileDeterministic(AggregateFunctionFactory &);
@@ -132,6 +133,7 @@ void registerAggregateFunctions()
         registerAggregateFunctionGroupUniqArray(factory);
         registerAggregateFunctionGroupArrayInsertAt(factory);
         registerAggregateFunctionGroupArrayIntersect(factory);
+        registerAggregateFunctionGroupPolygonUnion(factory);
         registerAggregateFunctionGroupConcat(factory);
         registerAggregateFunctionsQuantile(factory);
         registerAggregateFunctionsQuantileDeterministic(factory);
