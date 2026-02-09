@@ -39,7 +39,145 @@
 
 
 
+# 📅 2026-02-05
+
+### What I explored
+     - Compiled the clickhouse project into a single binary using cmake(building) and ninja (compilation).
+     - build folder, where all the stuff after compilation are stored. Like build.ninja(ninja build rules) , CMakeCache.txt, programs,src.
+     
+### What I learned
+     Commands to compile the project :
+          1)export CC = clang
+            export CXX = clang++
+          2) cd ~/ClickHouse
+          3) mkdir -p build & cd build
+          4) cmake ..
+          5) ninja clickhouse
+     rustc,cargo,cccache,python3 are mandatory
+
+      you can build specific components like:
+           - ninja clickhouse-local 
+     use cached builds for faster compilations:
+             = cmake DCCACHE_FOUND=ON ..
+     parallel compilation : 
+          - ninja -j4 clickhouse (limits to 4 jobs)
+
+### Questions / blockers
+     - It took 5 hours, 27 mins to compile in jetson nano. At this rate its not feasible to compile the entire project again and again for every change in codebase.
+     - How do they do testing ? What libraries are used for testing in c++?
+     - where are the UT's defined ?
+
+
+### Next steps
+     - Find out the testing workflow
+
+
+
+# 📅 2026-02-06
+
+### What I explored
+     - Functional testing, Unit testing, and integration testing, Performance test, and AST fuzzer test
+     - The environment where testing is enforced
+
+### What I learned
+     - Clickhouse uses Google test framework(gtest) for UT. Each component folder in /src has its own tests/ subfolder containing gtest_*.cpp files. If i want to do testing under s specific component i have to create a file in /src/component/tests/gtest_functionality_name.cpp
+
+     - Functional testing : Clickhouse/test/queries/stateless_0/000_functionality_name.sql
+                            Clickhouse/test/queries/stateless_0/000_functionality_name.reference
+                            How it works:
+                                .sql = Test queries
+                                .reference = Expected output
+                                1) Test runner compares actual output vs reference
+                                2) Match = PASS, Differ = FAIL
+
+                            command : ./tests/clickhouse-test 000_functionality_name
+        
+### Questions / blockers
+    How performance, load testing are done ? 
+    How to test in bulk (like paramterized testing using csv file)
+
+### Next steps
+    - Soon implement a functionality, understand the entry point of components
 
 
 
 
+
+# 📅 2026-02-09
+
+### What I explored
+     - Boost library : geoTypes and certain functionalities. Geo Datatypes clickhouse uses behind the scenes. 
+                    boost::geometry::model::d2::point_xy              Point
+                    boost::geometry::model::ring<Point>               Ring
+                    boost::geometry::model::polygon<Point>            Polygon
+                    boost::geometry::model::multi_polygon<Polygon>    MultiPolygon
+     - Scalar function definition workflow
+     - Aggregate function definition workflow
+    - CRTP pattern
+     - Built AggregateFunctionGroupPolygonUnion. Did functional testing with it.
+
+
+### What I learned
+    - scalar function creation : 
+               1)Central registry that maps function name -> function creators in src/Functions/FunctionFactory.h
+               2)Whatever function you're creating should inherit from IFunction.h
+               3)MyFunc.cpp -> in the end you have to register using REGISTER_FUNCTIO(MyFunc){
+                         factory.registerFunction<FunctionMyFunc>();
+               }   macro
+               4)  Methods that has to be overriden : getName(),getNumberOfArguements(),  getReturnTypeImpl() , executeImpl()->main logic
+               
+     - Aggregate function creation :
+               1)  src/AggregateFunctions/
+                    ├── AggregateFunctionFactory.h      ← Registry
+                    ├── IAggregateFunction.h            ← Base interface
+                    ├── registerAggregateFunctions.cpp  ← Registration
+                    ├── AggregateFunctionAvg.h/.cpp     ← Example
+                    ├── AggregateFunctionGroupPolygonUnion.h/.cpp  ← Your function!
+                    └── ...
+                2)Usually in .h files 
+                        file - Logic
+                        Class definition
+                        Data struct (state),  add(), merge(), serialize(), deserialize(), insertResultInto()
+                    and .cpp files
+                        file - Registration
+                        #include the .h file
+                        Factory function (createAggregateFunctionXXX)
+                        registerAggregateFunctionXXX() function
+
+                    src/AggregateFunctions/
+                    ├── AggregateFunctionGroupPolygonUnion.h    ← Logic (class + methods) it uses CRTP pattern
+                    ├── AggregateFunctionGroupPolygonUnion.cpp  ← Registration only
+                    └── registerAggregateFunctions.cpp          ← Declarations + calls
+
+                3) Then in src/AggregateFunctions/registerAggregateFunctions.cpp:
+                    // Line 23: Declaration
+                    void registerAggregateFunctionGroupPolygonUnion(AggregateFunctionFactory &);
+                    // Line 135: Call
+                    registerAggregateFunctionGroupPolygonUnion(factory);
+
+                4) These methods has to be implemented by the Aggregate function class
+                        +---------------------------+--------------------------------------------------------------+
+                        | Component                 | Purpose                                                      |
+                        +---------------------------+--------------------------------------------------------------+
+                        | Data struct               | Defines state (e.g., {sum, count})                            |
+                        | getName()                 | Returns the SQL function name                                 |
+                        | add()                     | Processes each row and updates the state                      |
+                        | merge()                   | Combines states from parallel threads                         |
+                        | serialize()               | Saves state for distributed queries                           |
+                        | deserialize()             | Loads state from distributed queries                          |
+                        | insertResultInto()        | Extracts final result from the state                          |
+                        | allocatesMemoryInArena()  | Indicates whether the function allocates memory in Arena      |
+                        |                           | true  → Uses Arena for dynamic allocations (strings, arrays)  |
+                        |                           | false → Uses only fixed-size state                            |
+                        +---------------------------+--------------------------------------------------------------+
+
+
+
+### Questions / blockers
+    - How to do unit testing on AggregateFunctionGroupPolygonUnion.
+    - since the feature was mostly built by claude, reliability and correctness of it is huge question mark.
+    - couldnt understand serialize, deserialize, and Arena memory pool(specialized for aggregate functions)
+
+### Next steps
+    - The feature is working for few test cases, so first ensure whatever junk claude generated is 100% correct(forget about optimality).
+    - Understand every single functions inside the class and then optimize it if needed
